@@ -1,0 +1,16 @@
+{
+  "name": "cvinna-app",
+  "version": "1.0.0",
+  "description": "Electron-app för cvinna.se",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging"
+  },
+  "keywords": ["electron", "cvinna"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}
