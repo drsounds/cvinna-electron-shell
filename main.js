@@ -1,5 +1,6 @@
-const { app, BrowserWindow, nativeTheme, Menu, nativeImage, shell, clipboard, ipcMain } = require('electron');
+const { app, BrowserWindow, nativeTheme, Menu, nativeImage, shell, clipboard, ipcMain, Tray } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 // Use OS locale for the Electron instance (must be set before app ready)
 const osLocale = Intl.DateTimeFormat().resolvedOptions().locale;
@@ -7,6 +8,9 @@ app.commandLine.appendSwitch('lang', osLocale);
 
 const APP_URL = 'https://www.cvinna.se';
 const ICON_PATH = path.join(__dirname, 'icon.png');
+const TRAY_ICON_PATH = path.join(__dirname, 'trayIcon.png');
+const TRAY_ICON_TEMPLATE_PATH = path.join(__dirname, 'trayIconTemplate.png');
+const TRAY_ICON_LIGHT_PATH = path.join(__dirname, 'trayIconLight.png');
 
 let isDeveloperMode = process.argv.includes('--enable-logging') || process.argv.includes('--developer');
 
@@ -87,9 +91,21 @@ function createApplicationMenu() {
     ],
   };
 
+  const navModifier = isMac ? 'Cmd' : 'Alt';
   const viewMenu = {
     label: 'View',
     submenu: [
+      {
+        label: 'Back',
+        accelerator: `${navModifier}+Left`,
+        click: () => BrowserWindow.getFocusedWindow()?.webContents?.goBack(),
+      },
+      {
+        label: 'Forward',
+        accelerator: `${navModifier}+Right`,
+        click: () => BrowserWindow.getFocusedWindow()?.webContents?.goForward(),
+      },
+      { type: 'separator' },
       { role: 'resetZoom', label: 'Reset Zoom' },
       { role: 'zoomIn', label: 'Zoom In' },
       { role: 'zoomOut', label: 'Zoom Out' },
@@ -132,6 +148,39 @@ ipcMain.on('enable-developer-mode', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (win) enableDeveloperMode(win);
 });
+
+let tray = null;
+
+function getTrayIcon() {
+  if (process.platform === 'darwin') {
+    return nativeImage.createFromPath(TRAY_ICON_TEMPLATE_PATH);
+  }
+  if (process.platform === 'win32') {
+    const useDarkIcon = nativeTheme.shouldUseDarkColors;
+    const lightPath = fs.existsSync(TRAY_ICON_LIGHT_PATH) ? TRAY_ICON_LIGHT_PATH : TRAY_ICON_PATH;
+    return nativeImage.createFromPath(useDarkIcon ? TRAY_ICON_PATH : lightPath);
+  }
+  return nativeImage.createFromPath(TRAY_ICON_PATH);
+}
+
+function createTray(mainWindow) {
+  const tray = new Tray(getTrayIcon());
+  tray.setToolTip('CVinna');
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: 'Show CVinna', click: () => mainWindow.show() },
+      { type: 'separator' },
+      { label: 'Quit', click: () => app.quit() },
+    ])
+  );
+  tray.on('click', () => mainWindow.show());
+  nativeTheme.on('updated', () => {
+    if (!tray.isDestroyed()) {
+      tray.setImage(getTrayIcon());
+    }
+  });
+  return tray;
+}
 
 function createWindow() {
   nativeTheme.themeSource = 'dark';
@@ -180,8 +229,14 @@ function createWindow() {
   });
 
   mainWindow.on('closed', () => {
+    tray?.destroy();
+    tray = null;
     app.quit();
   });
+
+  if (process.platform === 'darwin' || process.platform === 'win32') {
+    tray = createTray(mainWindow);
+  }
 }
 
 app.setName('CVinna');
