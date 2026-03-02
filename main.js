@@ -151,16 +151,24 @@ ipcMain.on('enable-developer-mode', (event) => {
 
 let tray = null;
 
+const TRAY_ICON_SIZE = 16;
+
 function getTrayIcon() {
+  let img;
   if (process.platform === 'darwin') {
-    return nativeImage.createFromPath(TRAY_ICON_TEMPLATE_PATH);
-  }
-  if (process.platform === 'win32') {
+    img = nativeImage.createFromPath(TRAY_ICON_TEMPLATE_PATH);
+  } else if (process.platform === 'win32') {
     const useDarkIcon = nativeTheme.shouldUseDarkColors;
     const lightPath = fs.existsSync(TRAY_ICON_LIGHT_PATH) ? TRAY_ICON_LIGHT_PATH : TRAY_ICON_PATH;
-    return nativeImage.createFromPath(useDarkIcon ? TRAY_ICON_PATH : lightPath);
+    img = nativeImage.createFromPath(useDarkIcon ? TRAY_ICON_PATH : lightPath);
+  } else {
+    img = nativeImage.createFromPath(TRAY_ICON_PATH);
   }
-  return nativeImage.createFromPath(TRAY_ICON_PATH);
+  const size = img.getSize();
+  if (size.width > TRAY_ICON_SIZE || size.height > TRAY_ICON_SIZE) {
+    return img.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE });
+  }
+  return img;
 }
 
 function createTray(mainWindow) {
