@@ -6,7 +6,7 @@ const fs = require('fs');
 const osLocale = Intl.DateTimeFormat().resolvedOptions().locale;
 app.commandLine.appendSwitch('lang', osLocale);
 
-const APP_URL = 'https://open.cvinna.se';
+const APP_URL = 'https://open.spacify.se/login';
 const ICON_PATH = path.join(__dirname, 'icon.png');
 const TRAY_ICON_PATH = path.join(__dirname, 'trayIcon.png');
 const TRAY_ICON_TEMPLATE_PATH = path.join(__dirname, 'trayIconTemplate.png');

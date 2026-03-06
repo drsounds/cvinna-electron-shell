@@ -6,7 +6,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --enable-logging",
-    "prepare:tray": "node scripts/prepare-tray-icons.js"
+    "prepare:tray": "node scripts/prepare-tray-icons.js",
+    "prepare:icons": "node scripts/prepare-icons.js"
   },
   "keywords": ["electron", "cvinna"],
   "author": "",
