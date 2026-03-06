@@ -4,16 +4,30 @@
   "description": "Electron-app för cvinna.se",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron . --enable-logging",
+    "start": "node scripts/start.js",
+    "dev": "node scripts/start.js --enable-logging",
     "prepare:tray": "node scripts/prepare-tray-icons.js",
-    "prepare:icons": "node scripts/prepare-icons.js"
+    "prepare:icons": "node scripts/prepare-icons.js",
+    "build": "npm run prepare:icons && electron-builder --mac"
   },
   "keywords": ["electron", "cvinna"],
   "author": "",
   "license": "MIT",
+  "build": {
+    "appId": "se.spacify.cvinna",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "icon.png"
+    },
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    }
+  },
   "devDependencies": {
     "electron": "^28.0.0",
+    "electron-builder": "^25.0.0",
+    "icon-gen": "^5.0.0",
     "sharp": "^0.33.5"
   }
 }

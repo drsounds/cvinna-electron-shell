@@ -10,20 +10,15 @@ const root = path.join(__dirname, '..');
 const svg = path.join(root, 'DesktopAppIcon.svg');
 
 async function run() {
-  // Main app icon (512x512) with macOS/iOS-style rounded corners (~18% radius)
+  const fs = require('fs');
+  // Main app icon (512x512) – square; macOS applies native squircle mask via .icns/.app bundle
   const size = 512;
-  const radius = Math.round(size * 0.18); // Soft corners matching OS style
-  const roundedMask = Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-      <rect width="${size}" height="${size}" rx="${radius}" ry="${radius}" fill="white"/>
-    </svg>`
-  );
-  const iconImg = await sharp(svg).resize(size, size).png();
-  await iconImg
-    .composite([{ input: roundedMask, blend: 'dest-in' }])
-    .png()
-    .toFile(path.join(root, 'icon.png'));
-  console.log('icon.png done (rounded corners)');
+  const iconPng = await sharp(svg).resize(size, size).png().toBuffer();
+  await sharp(iconPng).toFile(path.join(root, 'icon.png'));
+  const buildDir = path.join(root, 'build');
+  fs.mkdirSync(buildDir, { recursive: true });
+  await sharp(iconPng).toFile(path.join(buildDir, 'icon.png'));
+  console.log('icon.png done (root + build/)');
 
   // Tray icon for dark menu bars / taskbar (32x32)
   await sharp(svg).resize(32, 32).png().toFile(path.join(root, 'trayIcon.png'));
@@ -43,7 +38,6 @@ async function run() {
   console.log('trayIconTemplate.png done');
 
   // Light mode tray (same as template)
-  const fs = require('fs');
   fs.copyFileSync(path.join(root, 'trayIconTemplate.png'), path.join(root, 'trayIconLight.png'));
   console.log('trayIconLight.png done');
 }
