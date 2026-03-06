@@ -150,8 +150,36 @@ ipcMain.on('enable-developer-mode', (event) => {
 });
 
 let tray = null;
+let mainWindow = null;
+const pendingSpacifyUris = [];
 
 const TRAY_ICON_SIZE = 16;
+
+function sendNavigateToPage(win, uri) {
+  if (!win || win.isDestroyed()) return;
+  const payload = { type: 'navigate', uri };
+  win.webContents.executeJavaScript(
+    `window.postMessage(${JSON.stringify(payload)}, '*');`
+  ).catch(() => {});
+}
+
+function handleSpacifyUri(uri) {
+  if (!uri || typeof uri !== 'string' || !uri.toLowerCase().startsWith('spacify:')) return;
+  pendingSpacifyUris.push(uri);
+  trySendPendingUris();
+}
+
+function trySendPendingUris() {
+  if (pendingSpacifyUris.length === 0) return;
+  const win = mainWindow;
+  if (!win || win.isDestroyed()) return;
+  if (!win.webContents || win.webContents.isDestroyed()) return;
+  const uri = pendingSpacifyUris.shift();
+  sendNavigateToPage(win, uri);
+  if (pendingSpacifyUris.length > 0) {
+    setImmediate(trySendPendingUris);
+  }
+}
 
 function getTrayIcon() {
   let img;
@@ -193,7 +221,7 @@ function createTray(mainWindow) {
 function createWindow() {
   nativeTheme.themeSource = 'dark';
 
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     title: 'CVinna',
@@ -226,6 +254,7 @@ function createWindow() {
         }
       });
     `);
+    trySendPendingUris();
   });
 
   if (isDeveloperMode) {
@@ -237,6 +266,7 @@ function createWindow() {
   });
 
   mainWindow.on('closed', () => {
+    mainWindow = null;
     tray?.destroy();
     tray = null;
     app.quit();
@@ -249,12 +279,41 @@ function createWindow() {
 
 app.setName('CVinna');
 
+// Windows/Linux: single instance so we receive protocol URLs in second-instance
+if (process.platform !== 'darwin') {
+  const gotLock = app.requestSingleInstanceLock();
+  if (!gotLock) app.quit();
+}
+
+app.on('second-instance', (_event, argv) => {
+  const uri = argv.find((arg) => typeof arg === 'string' && arg.toLowerCase().startsWith('spacify:'));
+  if (uri) handleSpacifyUri(uri);
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win) win.show();
+});
+
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleSpacifyUri(url);
+});
+
 app.whenReady().then(() => {
+  const proto = 'spacify';
+  if (process.defaultApp) {
+    app.setAsDefaultProtocolClient(proto, process.execPath, [path.resolve(process.argv[1])]);
+  } else {
+    app.setAsDefaultProtocolClient(proto);
+  }
+
   if (process.platform === 'darwin') {
     app.dock.setIcon(nativeImage.createFromPath(ICON_PATH));
   }
   createApplicationMenu();
   createWindow();
+
+  // First launch with protocol URL (Windows/Linux)
+  const launchUri = process.argv.find((arg) => typeof arg === 'string' && arg.toLowerCase().startsWith('spacify:'));
+  if (launchUri) handleSpacifyUri(launchUri);
 });
 
 app.on('window-all-closed', () => {

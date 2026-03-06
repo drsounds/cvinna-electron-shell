@@ -17,7 +17,16 @@
     "appId": "se.spacify.cvinna",
     "mac": {
       "category": "public.app-category.productivity",
-      "icon": "icon.png"
+      "icon": "icon.png",
+      "extendInfo": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "Spacify URL",
+            "CFBundleURLSchemes": ["spacify"],
+            "CFBundleURLRole": "Editor"
+          }
+        ]
+      }
     },
     "directories": {
       "buildResources": "build",
